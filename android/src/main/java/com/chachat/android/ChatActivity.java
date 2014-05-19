@@ -2,9 +2,8 @@ package com.chachat.android;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,79 +21,73 @@ import com.koushikdutta.async.http.socketio.JSONCallback;
 import com.koushikdutta.async.http.socketio.SocketIOClient;
 import com.koushikdutta.async.http.socketio.StringCallback;
 import com.silva.managers.UserManager;
+import com.silva.objects.Message;
 import com.silva.objects.User;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Date;
 
-public class MainActivity extends ActionBarActivity {
 
-    private EditText edtUsername;
-    private Button btnEnter;
+public class ChatActivity extends ActionBarActivity {
 
-    private SocketIOClient mSocket;
+    private EditText mEditMessage;
+    private Button mBtnSend;
 
     private Context mContext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_chat);
 
         mContext = this;
 
-        edtUsername = (EditText) findViewById(R.id.main_username);
-        btnEnter = (Button) findViewById(R.id.main_enter_btn);
+        final User user = UserManager.getUser(mContext);
 
-        btnEnter.setOnClickListener(new View.OnClickListener() {
+        mEditMessage = (EditText) findViewById(R.id.chat_message);
+        mBtnSend = (Button) findViewById(R.id.chat_send_btn);
+
+        mBtnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                String username = edtUsername.getText().toString();
+                String textMessage = mEditMessage.getText().toString();
 
-                if (mSocket != null) {
-                    mSocket.disconnect();
-                    Log.d("SOCKET SERVER LOG", "PREVIOUS SOCKET DISCONNECTED");
-                }
+                Message message = new Message();
+                message.setCreatedDate(new Date(System.currentTimeMillis()));
+                message.setUser(user);
+                message.setText(textMessage);
 
-                getSocketIoInstance(username);
-
+                getSocketIoInstance(message);
             }
         });
-
     }
 
-    private void getSocketIoInstance(final String name) {
-
+    private void getSocketIoInstance(final Message message) {
         final ProgressDialog pd = new ProgressDialog(this);
         pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         pd.setCancelable(false);
         pd.setTitle("ChitChat");
-        pd.setMessage("Connecting to server...");
+        pd.setMessage("Sending message.");
         pd.show();
 
         SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://128.199.225.219:3000", new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient socketIOClient) {
 
-                mSocket = socketIOClient;
-
                 pd.dismiss();
 
                 if (ex != null) {
                     ex.printStackTrace();
-                    Log.d("SOCKET IO SERVER EXCEPTION", "" + "Error Connecting to server!");
+                    Toast.makeText(mContext, "Error connecting to server", Toast.LENGTH_LONG).show();
                     return;
                 }
 
                 if (socketIOClient.isConnected()) {
-                    join(name, socketIOClient);
-
-                    User user = new User();
-                    user.setName(name);
-                    UserManager.saveUser(user, mContext);
-
+                    sendMessage(message, socketIOClient);
                 } else {
                     Log.d("SOCKET IO JOIN GROUP", "" + "Not Connected");
                 }
@@ -110,7 +103,7 @@ public class MainActivity extends ActionBarActivity {
                     @Override
                     public void onEvent(JSONArray argument, Acknowledge acknowledge) {
                         System.out.println("args: " + argument.toString());
-                        Log.d("SOCKET IO SOME EVENTS", "" + argument.toString());
+                        Log.d("SOCKET IO SOME EVENTS USER RECEIVED MESSAGE", "" + argument.toString());
                     }
                 });
                 socketIOClient.setJSONCallback(new JSONCallback() {
@@ -121,20 +114,15 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-                Intent intent = new Intent(mContext, ChatActivity.class);
-                startActivity(intent);
-
             }
         });
     }
 
-    private void join(String nickname, SocketIOClient socket) {
-
+    private void sendMessage(Message message, SocketIOClient socket) {
 
         Gson gson = new Gson();
-        String jsonObject = gson.toJson(nickname);
+        String jsonObject = gson.toJson(message);
         socket.emit(jsonObject);
-
         Log.d("SOCKET IO USER MESSAGE", "" + jsonObject);
 
     }
@@ -142,7 +130,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.chat, menu);
         return true;
     }
 

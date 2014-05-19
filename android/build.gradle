@@ -21,4 +21,7 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:19.+'
+    compile 'com.koushikdutta.async:androidasync:1.2.5'
+    compile 'com.google.code.gson:gson:2.2.+'
+
 }
