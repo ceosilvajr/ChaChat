@@ -10,7 +10,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -25,7 +24,6 @@ import com.silva.objects.Message;
 import com.silva.objects.User;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
@@ -37,6 +35,8 @@ public class ChatActivity extends ActionBarActivity {
     private Button mBtnSend;
 
     private Context mContext;
+
+    private SocketIOClient mSocket;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +53,11 @@ public class ChatActivity extends ActionBarActivity {
         mBtnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                if (mSocket != null) {
+                    mSocket.disconnect();
+                    mSocket = null;
+                }
 
                 String textMessage = mEditMessage.getText().toString();
 
@@ -82,12 +87,17 @@ public class ChatActivity extends ActionBarActivity {
 
                 if (ex != null) {
                     ex.printStackTrace();
-                    Toast.makeText(mContext, "Error connecting to server", Toast.LENGTH_LONG).show();
+                    // Toast.makeText(mContext, "Error connecting to server", Toast.LENGTH_LONG).show();
                     return;
                 }
 
+                mSocket = socketIOClient;
+
                 if (socketIOClient.isConnected()) {
+                    Log.d("SOCKET IO", "USER CONNECTED");
+
                     sendMessage(message, socketIOClient);
+
                 } else {
                     Log.d("SOCKET IO JOIN GROUP", "" + "Not Connected");
                 }
@@ -99,13 +109,15 @@ public class ChatActivity extends ActionBarActivity {
                         Log.d("SOCKET IO STRING CALLBACK", "" + string);
                     }
                 });
-                socketIOClient.on("event", new EventCallback() {
+
+                socketIOClient.on("data", new EventCallback() {
                     @Override
                     public void onEvent(JSONArray argument, Acknowledge acknowledge) {
                         System.out.println("args: " + argument.toString());
                         Log.d("SOCKET IO SOME EVENTS USER RECEIVED MESSAGE", "" + argument.toString());
                     }
                 });
+
                 socketIOClient.setJSONCallback(new JSONCallback() {
                     @Override
                     public void onJSON(JSONObject jsonObject, Acknowledge acknowledge) {

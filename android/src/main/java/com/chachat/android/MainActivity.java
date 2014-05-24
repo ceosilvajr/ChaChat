@@ -58,84 +58,15 @@ public class MainActivity extends ActionBarActivity {
                     Log.d("SOCKET SERVER LOG", "PREVIOUS SOCKET DISCONNECTED");
                 }
 
-                getSocketIoInstance(username);
-
-            }
-        });
-
-    }
-
-    private void getSocketIoInstance(final String name) {
-
-        final ProgressDialog pd = new ProgressDialog(this);
-        pd.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        pd.setCancelable(false);
-        pd.setTitle("ChitChat");
-        pd.setMessage("Connecting to server...");
-        pd.show();
-
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://128.199.225.219:3000", new ConnectCallback() {
-            @Override
-            public void onConnectCompleted(Exception ex, SocketIOClient socketIOClient) {
-
-                mSocket = socketIOClient;
-
-                pd.dismiss();
-
-                if (ex != null) {
-                    ex.printStackTrace();
-                    Log.d("SOCKET IO SERVER EXCEPTION", "" + "Error Connecting to server!");
-                    return;
-                }
-
-                if (socketIOClient.isConnected()) {
-                    join(name, socketIOClient);
-
-                    User user = new User();
-                    user.setName(name);
-                    UserManager.saveUser(user, mContext);
-
-                } else {
-                    Log.d("SOCKET IO JOIN GROUP", "" + "Not Connected");
-                }
-
-                socketIOClient.setStringCallback(new StringCallback() {
-                    @Override
-                    public void onString(String string, Acknowledge acknowledge) {
-                        System.out.println(string);
-                        Log.d("SOCKET IO STRING CALLBACK", "" + string);
-                    }
-                });
-                socketIOClient.on("event", new EventCallback() {
-                    @Override
-                    public void onEvent(JSONArray argument, Acknowledge acknowledge) {
-                        System.out.println("args: " + argument.toString());
-                        Log.d("SOCKET IO SOME EVENTS", "" + argument.toString());
-                    }
-                });
-                socketIOClient.setJSONCallback(new JSONCallback() {
-                    @Override
-                    public void onJSON(JSONObject jsonObject, Acknowledge acknowledge) {
-                        System.out.println("json: " + jsonObject.toString());
-                        Log.d("SOCKET IO JSON CALLBACK", "" + jsonObject.toString());
-                    }
-                });
+                User user = new User();
+                user.setName(username);
+                UserManager.saveUser(user, mContext);
 
                 Intent intent = new Intent(mContext, ChatActivity.class);
                 startActivity(intent);
 
             }
         });
-    }
-
-    private void join(String nickname, SocketIOClient socket) {
-
-
-        Gson gson = new Gson();
-        String jsonObject = gson.toJson(nickname);
-        socket.emit(jsonObject);
-
-        Log.d("SOCKET IO USER MESSAGE", "" + jsonObject);
 
     }
 
